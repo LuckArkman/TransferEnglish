@@ -4,6 +4,7 @@ export const useConversationLoop = (tenantId: string) => {
     const transcriptions = ref<string[]>([])
     const aiResponses = ref<string[]>([])
     const isProcessing = ref(false)
+    const activeTip = ref<any | null>(null)
 
     // Audio elements for playback
     const audioPlayer = ref<HTMLAudioElement | null>(null)
@@ -21,6 +22,10 @@ export const useConversationLoop = (tenantId: string) => {
 
             if (data.type === 'ai_response') {
                 aiResponses.value.push(data.text)
+            }
+
+            if (data.type === 'quick_tip') {
+                activeTip.value = data.data
             }
 
             if (data.type === 'audio_response') {
@@ -63,6 +68,7 @@ export const useConversationLoop = (tenantId: string) => {
         isProcessing,
         transcriptions,
         aiResponses,
+        activeTip,
         startRecording,
         stopRecording,
         audioPlayer

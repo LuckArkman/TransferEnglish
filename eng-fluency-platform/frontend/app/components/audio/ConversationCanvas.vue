@@ -8,6 +8,7 @@ const {
   isProcessing, 
   transcriptions, 
   aiResponses, 
+  activeTip,
   startRecording, 
   stopRecording,
   audioPlayer 
@@ -15,7 +16,8 @@ const {
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center p-8 bg-slate-800/30 rounded-3xl border border-slate-700 backdrop-blur-xl shadow-2xl">
+  <div class="relative w-full max-w-4xl mx-auto">
+    <div class="flex flex-col items-center justify-center p-8 bg-slate-800/30 rounded-3xl border border-slate-700 backdrop-blur-xl shadow-2xl">
     <!-- Visualizer / Waveform (Placeholder) -->
     <div class="w-full h-48 flex items-center justify-center mb-8 relative">
       <div v-if="isRecording" class="flex items-center gap-1">
@@ -67,6 +69,10 @@ const {
 
     <!-- Hidden audio element for playback -->
     <audio ref="audioPlayer" class="hidden"></audio>
+    </div>
+
+    <!-- Quick Feedback Tips -->
+    <UiQuickTip v-if="activeTip" :tip="activeTip" @close="activeTip = null" />
   </div>
 </template>
 

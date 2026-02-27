@@ -5,6 +5,7 @@ import io
 from app.services.ai.asr_service import asr_service
 from app.services.ai.chat_service import chat_service
 from app.services.ai.tts_service import tts_service
+from app.services.ai.interruption_engine import interruption_engine
 
 class AudioSocketManager:
     def __init__(self):
@@ -59,7 +60,15 @@ class AudioSocketManager:
                         "text": transcription.text
                     })
 
-                    # 3. AI Logic (Chat)
+                    # 3. Interruption Check (Pedagogical tips)
+                    tip = await interruption_engine.analyze(transcription.text)
+                    if tip:
+                        await websocket.send_json({
+                            "type": "quick_tip",
+                            "data": tip
+                        })
+
+                    # 4. AI Logic (Chat)
                     ai_response_text = await chat_service.get_response(
                         conversation_history, 
                         transcription.text
