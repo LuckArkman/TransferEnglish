@@ -23,7 +23,7 @@ def get_current_user(
         token_data = TokenPayload(**payload)
     except (JWTError, ValidationError):
         raise HTTPException(
-            status_code=status.HTTP_03_FORBIDDEN,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
         )
     user = db.query(User).filter(User.id == token_data.sub).first()
@@ -32,6 +32,16 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return user
+
+def get_current_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    if current_user.role != "admin" and not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges",
+        )
+    return current_user
 
 def get_db_with_tenant(
     token: str = Depends(reusable_oauth2)
