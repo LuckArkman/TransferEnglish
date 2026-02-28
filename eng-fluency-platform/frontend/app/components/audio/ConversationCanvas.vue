@@ -9,6 +9,7 @@ const {
   transcriptions, 
   aiResponses, 
   activeTip,
+  activeChallenge,
   startRecording, 
   stopRecording,
   audioPlayer 
@@ -17,7 +18,23 @@ const {
 
 <template>
   <div class="relative w-full max-w-4xl mx-auto">
-    <div class="flex flex-col items-center justify-center p-8 bg-slate-800/30 rounded-3xl border border-slate-700 backdrop-blur-xl shadow-2xl">
+    <!-- Pressure Mode Indicator -->
+    <div v-if="activeChallenge" 
+      class="absolute -top-16 left-1/2 -translate-x-1/2 w-full max-w-lg bg-red-600 text-white px-6 py-3 rounded-2xl shadow-2xl animate-bounce flex items-center justify-between z-20"
+    >
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🔥</span>
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-widest opacity-80">Pressure Mode Activated</div>
+          <div class="text-sm font-medium">Say: "{{ activeChallenge.target_text }}"</div>
+        </div>
+      </div>
+      <div class="text-xl font-mono font-bold">{{ activeChallenge.time_limit_seconds }}s</div>
+    </div>
+
+    <div class="flex flex-col items-center justify-center p-8 bg-slate-800/30 rounded-3xl border border-slate-700 backdrop-blur-xl shadow-2xl"
+      :class="{ 'border-red-500/50 shadow-red-500/10': activeChallenge }"
+    >
     <!-- Visualizer / Waveform (Placeholder) -->
     <div class="w-full h-48 flex items-center justify-center mb-8 relative">
       <div v-if="isRecording" class="flex items-center gap-1">

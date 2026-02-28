@@ -6,6 +6,7 @@ from app.services.ai.asr_service import asr_service
 from app.services.ai.chat_service import chat_service
 from app.services.ai.tts_service import tts_service
 from app.services.ai.interruption_engine import interruption_engine
+from app.services.ai.pressure_engine import pressure_engine
 
 class AudioSocketManager:
     def __init__(self):
@@ -87,10 +88,18 @@ class AudioSocketManager:
                     audio_response = await tts_service.generate_speech(ai_response_text)
                     
                     if audio_response:
-                        # Send back as binary or base64
                         await websocket.send_json({
                             "type": "audio_response",
                             "audio": base64.b64encode(audio_response).decode('utf-8')
+                        })
+
+                    # 5. Potential Pressure Mode Trigger (20% chance)
+                    import random
+                    if random.random() < 0.2:
+                        challenge = pressure_engine.trigger_challenge()
+                        await websocket.send_json({
+                            "type": "pressure_challenge",
+                            "data": challenge.model_dump()
                         })
                 
                 elif "text" in data:
