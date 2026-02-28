@@ -13,7 +13,8 @@ const {
   activeChallenge,
   startRecording, 
   stopRecording,
-  audioPlayer 
+  audioPlayer,
+  audioData
 } = useConversationLoop(props.tenantId, props.scenarioId)
 </script>
 
@@ -36,12 +37,12 @@ const {
     <div class="flex flex-col items-center justify-center p-8 bg-slate-800/30 rounded-3xl border border-slate-700 backdrop-blur-xl shadow-2xl"
       :class="{ 'border-red-500/50 shadow-red-500/10': activeChallenge }"
     >
-    <!-- Visualizer / Waveform (Placeholder) -->
+    <!-- Visualizer / Waveform -->
     <div class="w-full h-48 flex items-center justify-center mb-8 relative">
       <div v-if="isRecording" class="flex items-center gap-1">
-        <div v-for="i in 12" :key="i" 
-          class="w-1 bg-indigo-500 rounded-full animate-pulse"
-          :style="{ height: `${10 + Math.random() * 40}px`, animationDelay: `${i * 100}ms` }">
+        <div v-for="(height, i) in audioData" :key="i" 
+          class="w-1 bg-indigo-500 rounded-full transition-all duration-75"
+          :style="{ height: `${height}px` }">
         </div>
       </div>
       <div v-else-if="isProcessing" class="text-indigo-400 font-medium animate-bounce">

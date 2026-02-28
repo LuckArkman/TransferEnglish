@@ -1,5 +1,5 @@
 export const useConversationLoop = (tenantId: string, scenarioId?: string) => {
-    const { isRecording, startRecording, stopRecording, connect, socket } = useAudioRecorder(tenantId)
+    const { isRecording, startRecording, stopRecording, connect, socket, audioData } = useAudioRecorder(tenantId)
 
     const transcriptions = ref<string[]>([])
     const aiResponses = ref<string[]>([])
@@ -86,6 +86,7 @@ export const useConversationLoop = (tenantId: string, scenarioId?: string) => {
         activeChallenge,
         startRecording,
         stopRecording,
-        audioPlayer
+        audioPlayer,
+        audioData
     }
 }
