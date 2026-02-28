@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.middleware.tenant import TenantMiddleware
-from app.api.v1.endpoints import login, linguistics, analytics, progression
+from app.api.v1.endpoints import login, linguistics, analytics, progression, gamification
 from app.api.ws.audio import audio_manager
 from fastapi import WebSocket
 
@@ -35,6 +35,7 @@ app.include_router(login.router, prefix=settings.API_V1_STR, tags=["auth"])
 app.include_router(linguistics.router, prefix=f"{settings.API_V1_STR}/linguistics", tags=["linguistics"])
 app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
 app.include_router(progression.router, prefix=f"{settings.API_V1_STR}/progression", tags=["progression"])
+app.include_router(gamification.router, prefix=f"{settings.API_V1_STR}/gamification", tags=["gamification"])
 
 @app.websocket("/ws/audio/{tenant_id}")
 async def websocket_audio_endpoint(websocket: WebSocket, tenant_id: str):
