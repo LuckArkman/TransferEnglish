@@ -1,18 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
+  compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
-  future: {
-    compatibilityVersion: 4,
-  },
-  pinia: {
-    storesDirs: ['./app/store/**']
-  },
   imports: {
     dirs: [
-      'app/store',
-      'app/composables',
+      'store',
+      'composables',
     ]
   },
   runtimeConfig: {
@@ -22,3 +16,4 @@ export default defineNuxtConfig({
     }
   }
 })
+
