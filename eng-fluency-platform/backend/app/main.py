@@ -41,6 +41,10 @@ app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["a
 app.include_router(privacy.router, prefix=f"{settings.API_V1_STR}/privacy", tags=["privacy"])
 app.include_router(billing.router, prefix=f"{settings.API_V1_STR}/billing", tags=["billing"])
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.websocket("/ws/audio/{tenant_id}")
 async def websocket_audio_endpoint(websocket: WebSocket, tenant_id: str):
     await audio_manager.connect(websocket, tenant_id)
