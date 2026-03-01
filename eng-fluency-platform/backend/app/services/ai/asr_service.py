@@ -1,7 +1,6 @@
 import os
 import io
 import google.generativeai as genai
-from pydub import AudioSegment
 from app.core.config import settings
 from app.schemas.audio import TranscriptionResult
 
@@ -10,62 +9,64 @@ class ASRService:
         self.api_key = api_key or settings.GOOGLE_API_KEY
         if self.api_key:
             genai.configure(api_key=self.api_key)
-            # Upgraded to Gemini 2.5 as per the new models available in the account
+            # gemini-2.5-flash supports generateContent AND multimodal audio input
             self.model = genai.GenerativeModel("gemini-2.5-flash")
         else:
             self.model = None
 
-    def convert_to_wav(self, audio_bytes: bytes, format: str = "webm") -> io.BytesIO:
-        """
-        Convert incoming audio stream chunks (often webm) to MP3 for the model.
-        """
-        try:
-            audio = AudioSegment.from_file(io.BytesIO(audio_bytes), format=format)
-            buffer = io.BytesIO()
-            audio.export(buffer, format="mp3")
-            buffer.seek(0)
-            return buffer
-        except Exception as e:
-            print(f"Audio conversion error: {e}")
-            return io.BytesIO(audio_bytes) # Fallback
+    def detect_audio_mime(self, audio_bytes: bytes) -> str:
+        """Detect audio mime type from raw bytes."""
+        # WebM/Matroska EBML magic bytes
+        if audio_bytes[:4] == b'\x1a\x45\xdf\xa3':
+            return "audio/webm"
+        # OGG magic bytes
+        if audio_bytes[:4] == b'OggS':
+            return "audio/ogg"
+        # MP3 sync word or ID3 tag
+        if audio_bytes[:3] == b'ID3' or audio_bytes[:2] in (b'\xff\xfb', b'\xff\xf3', b'\xff\xf2'):
+            return "audio/mp3"
+        # WAV RIFF magic bytes
+        if audio_bytes[:4] == b'RIFF':
+            return "audio/wav"
+        # Default to webm for browser-recorded audio
+        return "audio/webm"
 
-    async def transcribe(self, audio_buffer: io.BytesIO) -> TranscriptionResult:
+    async def transcribe(self, audio_data: bytes) -> TranscriptionResult:
         """
-        Send audio to Google Gemini for transcription.
+        Send raw audio bytes directly to Google Gemini for transcription.
+        No ffmpeg conversion needed — Gemini handles WebM/MP3/OGG natively.
         """
         if not self.model:
             print("ASR Error: Google API Key not configured")
             return TranscriptionResult(text="")
 
-        try:
-            audio_data_bytes = audio_buffer.read()
-            if not audio_data_bytes:
-                return TranscriptionResult(text="")
+        if not audio_data or len(audio_data) < 100:
+            return TranscriptionResult(text="")
 
-            mime_type = "audio/mp3"
-            if audio_data_bytes.startswith(b'\x1a\x45\xdf\xa3'):
-                mime_type = "audio/webm"
+        try:
+            mime_type = self.detect_audio_mime(audio_data)
+            print(f"ASR: Sending {len(audio_data)} bytes as {mime_type} to Gemini 2.5 Flash")
 
             response = self.model.generate_content([
                 {
                     "mime_type": mime_type,
-                    "data": audio_data_bytes
+                    "data": audio_data
                 },
-                "Transcription: "
+                "Please transcribe this audio accurately. Reply with only the spoken text."
             ])
-            
-            return TranscriptionResult(
-                text=response.text.strip(),
-                language="en"
-            )
+
+            text = response.text.strip() if response.text else ""
+            print(f"ASR Result: '{text}'")
+            return TranscriptionResult(text=text, language="en")
+
         except Exception as e:
             err_msg = str(e)
             if "API key not valid" in err_msg:
-                print(f"CRITICAL: Gemini API Key is invalid or not activated. [DEBUG]: {err_msg}")
-            elif "Quota" in err_msg or "429" in err_msg:
-                print(f"WARNING: Gemini API Quota Exceeded. Please check your plan. [DEBUG]: {err_msg}")
+                print(f"CRITICAL: Gemini API Key is invalid. Check .env file.")
+            elif "429" in err_msg or "quota" in err_msg.lower():
+                print(f"WARNING: Gemini quota exceeded. Check your plan.")
             else:
-                print(f"ASR (Gemini) Error (Full): {e}")
+                print(f"ASR (Gemini) Error: {e}")
             return TranscriptionResult(text="")
 
 asr_service = ASRService()

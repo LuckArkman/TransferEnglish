@@ -59,6 +59,8 @@ class AudioSocketManager:
     
         system_mod = ""
         full_audio_accumulator = bytearray()
+        # Store the first WebM chunk as the stream header so we can prepend it
+        # when the buffer is reset (WebM requires the initial cluster headers)
         audio_header = bytearray()
 
         async def process_buffer():
@@ -67,14 +69,15 @@ class AudioSocketManager:
                 return
 
             try:
-                # Prepend header if current buffer doesn't look like a start of file
-                # and we have a header stored from the beginning of the session
                 data_to_process = bytes(full_audio_accumulator)
+
+                # If accumulated bytes don't start with EBML header but we have one stored,
+                # prepend it so the WebM container is always valid
                 if audio_header and not data_to_process.startswith(b'\x1a\x45\xdf\xa3'):
                     data_to_process = bytes(audio_header) + data_to_process
 
-                audio_buffer = asr_service.convert_to_wav(data_to_process)
-                transcription = await asr_service.transcribe(audio_buffer)
+                # Send raw bytes directly to Gemini — no ffmpeg conversion needed
+                transcription = await asr_service.transcribe(data_to_process)
                 
                 if transcription.text.strip():
                     await websocket.send_json({
@@ -122,10 +125,10 @@ class AudioSocketManager:
                 if "bytes" in data:
                     audio_chunk = data["bytes"]
                     
-                    # Capture the header if this is the start and it looks like a WebM header
+                    # On the very first WebM chunk, store the entire chunk as the stream header.
+                    # WebM files require EBML + Segment headers to be decodable.
                     if len(audio_header) == 0 and audio_chunk.startswith(b'\x1a\x45\xdf\xa3'):
-                        # Keep the first chunk as potential header (matroska/webm headers are usually small)
-                        audio_header.extend(audio_chunk[:2048]) 
+                        audio_header.extend(audio_chunk)
 
                     full_audio_accumulator.extend(audio_chunk)
                     
