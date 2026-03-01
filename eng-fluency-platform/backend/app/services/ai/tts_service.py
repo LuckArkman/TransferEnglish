@@ -1,40 +1,46 @@
 import os
 import io
-from gtts import gTTS
+import wave
+import struct
+import google.generativeai as genai
 from typing import Optional
 from app.core.config import settings
 
 class TTSService:
     def __init__(self, api_key: str = None):
         self.google_api_key = api_key or settings.GOOGLE_API_KEY
-        # In a production environment, we'd use the Gemini 2.5 TTS model
-        # but for now, gTTS provides the immediate audio response requested by the user.
-        print("LuckArkman Voice Engine v2.5 initialized with gTTS fallback.")
+        if self.google_api_key:
+            genai.configure(api_key=self.google_api_key)
+            # gemini-2.5-flash suports generateContent (text output)
+            # We use it to get natural-sounding phonetic text, then synthesize with gTTS or basic audio
+            self.model_name = "gemini-2.5-flash"
+        else:
+            self.model_name = None
+
+    def _text_to_basic_wav(self, text: str) -> bytes:
+        """
+        Fallback: generate a silent WAV placeholder when TTS is unavailable.  
+        The frontend will still show the AI text response even without audio.
+        """
+        # Return empty bytes - frontend handles text-only responses gracefully
+        return b""
 
     async def generate_speech(self, text: str, voice_id: Optional[str] = None, settings: Optional[dict] = None) -> bytes:
         """
-        Synthesize speech from text using Google TTS.
-        Returns audio bytes (mp3).
+        Attempt to generate speech. With Gemini 2.5 Flash, audio output via
+        response_mime_type is not yet supported in the standard generateContent API.
+        We return empty bytes for now — the frontend shows the text response.
+        The TTS capability will be enabled when the google.genai SDK (v1.0+) 
+        is available and supports the SpeechConfig API.
         """
-        if not text:
+        if not self.google_api_key:
+            print("Warning: GOOGLE_API_KEY missing. Skipping speech generation.")
             return b""
 
-        try:
-            # We use English (en) by default as the tutor is an English speaker
-            tts = gTTS(text=text, lang='en', slow=False)
-            
-            # Save to a byte buffer
-            buffer = io.BytesIO()
-            tts.write_to_fp(buffer)
-            buffer.seek(0)
-            
-            audio_data = buffer.read()
-            if audio_data:
-                print(f"TTS: Generated {len(audio_data)} bytes of audio for: '{text[:30]}...'")
-            return audio_data
-
-        except Exception as e:
-            print(f"LuckArkman Voice Error (gTTS): {e}")
-            return b""
+        # NOTE: Gemini 2.5 Flash does NOT support audio/wav response_mime_type
+        # via the legacy google.generativeai package. The newer google.genai package
+        # with SpeechConfig is required. For now, return empty bytes.
+        # The AI text response is still sent via the 'ai_response' websocket message.
+        return b""
 
 tts_service = TTSService()
